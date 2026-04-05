@@ -1,0 +1,56 @@
+use std::fs::{OpenOptions};
+use std::io::{Write, Read};
+use std::env;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 2 {
+        println!("Usage:");
+        println!(" add <minutes> <break>");
+        println!(" list");
+        return;
+    }
+
+    match args[1].as_str() {
+        "add" => add_session(&args),
+        "list" => list_sessions(),
+        _ => println!("Invalid command"),
+    }
+}
+
+fn add_session(args: &Vec<String>) {
+    if args.len() < 4 {
+        println!("Usage: add <minutes> <break>");
+        return;
+    }
+
+    let duration = &args[2];
+    let break_time = &args[3];
+
+    let entry = format!("Session: {} min | Break: {} min\n", duration, break_time);
+
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("sessions.txt")
+        .expect("Unable to open file");
+
+    file.write_all(entry.as_bytes())
+        .expect("Write failed");
+
+    println!("Session saved!");
+}
+
+fn list_sessions() {
+    let mut file = OpenOptions::new()
+        .read(true)
+        .open("sessions.txt")
+        .expect("No sessions found");
+
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)
+        .expect("Read failed");
+
+    println!("Sessions:\n{}", contents);
+}
