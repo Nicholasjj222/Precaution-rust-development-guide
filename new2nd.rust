@@ -1,0 +1,46 @@
+use actix_web::{web, App, HttpServer, Responder, HttpResponse};
+use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
+
+#[derive(Serialize, Deserialize, Clone)]
+struct Color {
+    id: usize,
+    name: String,
+    hex: String,
+}
+
+struct AppState {
+    colors: Mutex<Vec<Color>>,
+}
+
+// GET all colors
+async fn get_colors(data: web::Data<AppState>) -> impl Responder {
+    let colors = data.colors.lock().unwrap();
+    HttpResponse::Ok().json(colors.clone())
+}
+
+// POST create color
+async fn add_color(data: web::Data<AppState>, item: web::Json<Color>) -> impl Responder {
+    let mut colors = data.colors.lock().unwrap();
+    colors.push(item.into_inner());
+    HttpResponse::Ok().body("Color added")
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let app_state = web::Data::new(AppState {
+        colors: Mutex::new(vec![]),
+    });
+
+    println!("Server running on http://127.0.0.1:8080");
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(app_state.clone())
+            .route("/colors", web::get().to(get_colors))
+            .route("/colors", web::post().to(add_color))
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
+}
